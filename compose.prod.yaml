@@ -1,0 +1,42 @@
+# Production overrides:  docker compose -f compose.yaml -f compose.prod.yaml up -d
+# Requires API_DOMAIN (DNS pointing at this host) and ACME_EMAIL in .env.
+services:
+  traefik:
+    environment:
+      TRAEFIK_ENTRYPOINTS_WEBSECURE_ADDRESS: ":443"
+      TRAEFIK_ENTRYPOINTS_WEBSECURE_HTTP_TLS_CERTRESOLVER: letsencrypt
+      # Global HTTP -> HTTPS redirect.
+      TRAEFIK_ENTRYPOINTS_WEB_HTTP_REDIRECTIONS_ENTRYPOINT_TO: websecure
+      TRAEFIK_ENTRYPOINTS_WEB_HTTP_REDIRECTIONS_ENTRYPOINT_SCHEME: https
+      TRAEFIK_ENTRYPOINTS_WEB_HTTP_REDIRECTIONS_ENTRYPOINT_PERMANENT: "true"
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_STORAGE: /letsencrypt/acme.json
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_TLSCHALLENGE: "true"
+      # The dashboard stays disabled (TRAEFIK_API_* is not set).
+    ports:
+      - "443:443"
+    volumes:
+      - letsencrypt:/letsencrypt
+    restart: unless-stopped
+
+  db:
+    restart: unless-stopped
+
+  web:
+    environment:
+      ENVIRONMENT: prod
+    labels:
+      traefik.http.routers.api.rule: Host(`${API_DOMAIN:?set API_DOMAIN in .env}`)
+      traefik.http.routers.api.entrypoints: websecure
+      traefik.http.routers.api.tls: "true"
+      traefik.http.routers.api.tls.certresolver: letsencrypt
+      traefik.http.routers.api.middlewares: security-headers
+      traefik.http.middlewares.security-headers.headers.stsSeconds: "31536000"
+      traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains: "true"
+      traefik.http.middlewares.security-headers.headers.contentTypeNosniff: "true"
+      traefik.http.middlewares.security-headers.headers.referrerPolicy: no-referrer
+      traefik.http.middlewares.security-headers.headers.frameDeny: "true"
+    restart: unless-stopped
+
+volumes:
+  letsencrypt:

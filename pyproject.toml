@@ -1,0 +1,112 @@
+[project]
+name = "notes-api"
+version = "0.1.0"
+description = "Backend REST API for a team note-taking service"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.20.0",
+    "asyncpg>=0.31.0",
+    "email-validator>=2.3.0",
+    "fastapi>=0.142.2",
+    "merge3>=0.0.16",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "pyjwt>=2.15.1",
+    "python-multipart>=0.0.32",
+    "sqlalchemy[asyncio]>=2.1.2",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.4.0",
+    "poethepoet>=0.48.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.10",
+    "testcontainers[postgres]>=4.15.0",
+]
+
+# The application is deployed as source (app/, migrations/), not as an installed wheel.
+[tool.uv]
+package = false
+
+# ---------------------------------------------------------------------------
+# Task runner: `uv run poe <task>` works the same on Windows, macOS and Linux.
+# ---------------------------------------------------------------------------
+[tool.poe.tasks]
+init-env = { script = "tools.dev:init_env", help = "Create .env from .env.example with a generated JWT secret" }
+up = { cmd = "docker compose up -d --build", help = "Build and start the dev stack (traefik, db, migrate, web)" }
+down = { cmd = "docker compose down", help = "Stop the dev stack" }
+logs = { cmd = "docker compose logs -f", help = "Follow logs of the dev stack (pass service names to filter)" }
+migrate = { cmd = "docker compose run --rm migrate", help = "Apply migrations to the compose database" }
+create-superuser = { cmd = "docker compose exec web python -m app.cli create-superuser", help = "Create (or promote) a superuser in the running stack" }
+test = { cmd = "pytest", help = "Run the test suite (requires Docker for testcontainers)" }
+format = { sequence = ["ruff format .", "ruff check --fix ."], default_item_type = "cmd", help = "Auto-format and apply safe lint fixes" }
+typecheck = { cmd = "mypy", help = "Run mypy (strict on the app package)" }
+check = { sequence = ["lint", "test"], help = "Lint, type-check and test - what CI runs" }
+
+[tool.poe.tasks.lint]
+help = "ruff lint, ruff format check and mypy"
+sequence = ["ruff check .", "ruff format --check .", "mypy"]
+default_item_type = "cmd"
+
+[tool.poe.tasks.revision]
+help = "Autogenerate a migration against the dev DB: poe revision -m \"add foo\""
+cmd = "alembic revision --autogenerate -m \"${m}\""
+args = [{ name = "m", options = ["-m"], required = true, help = "Migration message" }]
+
+[tool.poe.tasks.prod-up]
+help = "Start the production stack"
+cmd = "docker compose -f compose.yaml -f compose.prod.yaml up -d --build"
+
+# ---------------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["migrations/versions/*.py.mako"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "ASYNC", "RUF", "N", "C4", "PT", "S", "DTZ"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+"tools/**" = ["T201"]
+
+[tool.mypy]
+python_version = "3.13"
+files = ["app", "tests", "tools", "migrations"]
+plugins = ["pydantic.mypy"]
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["app.*"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["testcontainers.*"]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    "error::sqlalchemy.exc.SADeprecationWarning",
+    "ignore::DeprecationWarning:testcontainers.*",
+    # Postgres normalizes generated-column expressions, so Alembic can't compare them.
+    "ignore:Computed default on notes.search_vector cannot be modified:UserWarning",
+]

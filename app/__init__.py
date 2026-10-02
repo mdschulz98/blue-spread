@@ -1,0 +1,1 @@
+"""Notes API application package."""

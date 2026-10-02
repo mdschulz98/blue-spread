@@ -1,0 +1,97 @@
+# Base stack. Dev overrides (compose.override.yaml) load automatically with `docker compose up`;
+# production uses `docker compose -f compose.yaml -f compose.prod.yaml up -d`.
+name: notes
+
+x-app: &app
+  image: notes-api:${IMAGE_TAG:-latest}
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    POSTGRES_HOST: db
+    POSTGRES_PORT: "5432"
+
+services:
+  traefik:
+    image: traefik:v3.6
+    # Static configuration via environment variables, so the dev/prod files can add to it.
+    environment:
+      TRAEFIK_PROVIDERS_DOCKER: "true"
+      TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
+      TRAEFIK_PROVIDERS_DOCKER_NETWORK: notes_proxy
+      TRAEFIK_ENTRYPOINTS_WEB_ADDRESS: ":80"
+      TRAEFIK_PING: "true"
+      TRAEFIK_LOG_LEVEL: INFO
+      TRAEFIK_LOG_FORMAT: json
+      TRAEFIK_ACCESSLOG: "true"
+      TRAEFIK_ACCESSLOG_FORMAT: json
+      TRAEFIK_GLOBAL_SENDANONYMOUSUSAGE: "false"
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+
+  web:
+    <<: *app
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - proxy
+      - backend
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.api.rule: Host(`${API_DOMAIN:-api.localhost}`)
+      traefik.http.routers.api.entrypoints: web
+      traefik.http.services.api.loadbalancer.server.port: "8000"
+      traefik.http.services.api.loadbalancer.healthcheck.path: /healthz
+      traefik.http.services.api.loadbalancer.healthcheck.interval: 10s
+
+networks:
+  # Traefik <-> web.
+  proxy:
+  # web/migrate <-> db. Internal: no route to the outside world.
+  backend:
+    internal: true
+
+volumes:
+  pgdata:
