@@ -265,7 +265,7 @@ documented 200/409 examples for `PATCH /notes/{id}`.
 
 | Area | Endpoints |
 | --- | --- |
-| Health | `GET /healthz` (liveness, no DB), `GET /readyz` (runs `SELECT 1`); also served at `/healthz`, `/readyz` |
+| Health | `GET /healthz` (liveness, no DB), `GET /readyz` (runs `SELECT 1`) |
 | Auth | `POST /auth/login` (OAuth2 form, `username` = email), `POST /auth/refresh`, `POST /auth/register` |
 | Users | `GET` / `PATCH /users/me`, `POST /users` and `GET /users/{id}` (superuser) |
 | Teams | `GET` / `POST /teams`, `GET` / `PATCH` / `DELETE /teams/{id}` |

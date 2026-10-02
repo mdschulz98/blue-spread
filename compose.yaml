@@ -83,7 +83,7 @@ services:
       traefik.http.routers.api.rule: Host(`${API_DOMAIN:-api.localhost}`)
       traefik.http.routers.api.entrypoints: web
       traefik.http.services.api.loadbalancer.server.port: "8000"
-      traefik.http.services.api.loadbalancer.healthcheck.path: /healthz
+      traefik.http.services.api.loadbalancer.healthcheck.path: /api/v1/healthz
       traefik.http.services.api.loadbalancer.healthcheck.interval: 10s
 
 networks:
