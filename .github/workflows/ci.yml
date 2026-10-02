@@ -1,8 +1,12 @@
 name: CI
 
+# Runs on PRs (every push to a PR branch) and after merges to main. Feature branches without
+# a PR don't run CI automatically: use "Run workflow" (workflow_dispatch) or `uv run poe check`.
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
