@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import api_router, health
+from app.api.v1 import api_router
 from app.core.config import Settings, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
@@ -57,8 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
-            expose_headers=["ETag", "Location",
-                            "X-Note-Merged", REQUEST_ID_HEADER],
+            expose_headers=["ETag", "Location", "X-Note-Merged", REQUEST_ID_HEADER],
         )
     # Outermost, so every response (including errors and CORS preflights) gets a request ID.
     app.add_middleware(RequestContextMiddleware)
