@@ -57,12 +57,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
-            expose_headers=["ETag", "Location", "X-Note-Merged", REQUEST_ID_HEADER],
+            expose_headers=["ETag", "Location",
+                            "X-Note-Merged", REQUEST_ID_HEADER],
         )
     # Outermost, so every response (including errors and CORS preflights) gets a request ID.
     app.add_middleware(RequestContextMiddleware)
 
-    # Health probes are also served at the root for container/proxy health checks.
-    app.include_router(health.router, include_in_schema=False)
     app.include_router(api_router)
     return app
