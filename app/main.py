@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import api_router, health
+from app.api.v1 import api_router
 from app.core.config import Settings, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
@@ -62,7 +62,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Outermost, so every response (including errors and CORS preflights) gets a request ID.
     app.add_middleware(RequestContextMiddleware)
 
-    # Health probes are also served at the root for container/proxy health checks.
-    app.include_router(health.router, include_in_schema=False)
     app.include_router(api_router)
     return app
