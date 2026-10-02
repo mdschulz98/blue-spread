@@ -45,6 +45,7 @@ logs = { cmd = "docker compose logs -f", help = "Follow logs of the dev stack (p
 migrate = { cmd = "docker compose run --rm migrate", help = "Apply migrations to the compose database" }
 create-superuser = { cmd = "docker compose exec web python -m app.cli create-superuser", help = "Create (or promote) a superuser in the running stack" }
 test = { cmd = "pytest", help = "Run the test suite (requires Docker for testcontainers)" }
+smoke = { cmd = "python tools/smoke.py", help = "Smoke-test the running stack through Traefik" }
 format = { sequence = ["ruff format .", "ruff check --fix ."], default_item_type = "cmd", help = "Auto-format and apply safe lint fixes" }
 typecheck = { cmd = "mypy", help = "Run mypy (strict on the app package)" }
 check = { sequence = ["lint", "test"], help = "Lint, type-check and test - what CI runs" }

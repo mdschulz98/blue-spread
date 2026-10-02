@@ -47,21 +47,43 @@ jobs:
         run: uv run pytest
 
   docker:
-    name: Build image and validate compose files
+    name: Docker build and stack smoke test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
+
+      # .env.example has every variable compose needs (incl. API_DOMAIN/ACME_EMAIL for the
+      # prod file); init_env copies it and generates JWT_SECRET/POSTGRES_PASSWORD.
+      - name: Create .env
+        run: python3 -c "from tools.dev import init_env; init_env()"
+
       - name: Validate compose files
-        env:
-          POSTGRES_USER: ci
-          POSTGRES_PASSWORD: ci
-          POSTGRES_DB: ci
-          API_DOMAIN: api.example.com
-          ACME_EMAIL: ops@example.com
         run: |
           docker compose -f compose.yaml config --quiet
           docker compose config --quiet
           docker compose -f compose.yaml -f compose.prod.yaml config --quiet
-      - name: Build image
-        run: docker build -f docker/Dockerfile -t notes-api:ci .
+
+      # The base stack only (no dev override): the production image and start command,
+      # routed by Traefik over plain HTTP.
+      - name: Build and start stack
+        run: docker compose -f compose.yaml up -d --build --wait --wait-timeout 180
+
+      - name: Check migrations ran
+        run: |
+          code=$(docker compose -f compose.yaml ps -a migrate --format '{{.ExitCode}}')
+          echo "migrate exit code: $code"
+          test "$code" = "0"
+
+      - name: Smoke test through Traefik
+        run: python3 tools/smoke.py
+
+      - name: Show stack state and logs
+        if: failure()
+        run: |
+          docker compose -f compose.yaml ps -a
+          docker compose -f compose.yaml logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f compose.yaml down -v

@@ -44,8 +44,6 @@ services:
     volumes:
       - ./app:/app/app:ro
       - ./migrations:/app/migrations:ro
-    labels:
-      traefik.http.routers.api.rule: Host(`api.localhost`)
 
 networks:
   dbtools:

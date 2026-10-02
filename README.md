@@ -62,6 +62,7 @@ Tasks are defined in `pyproject.toml` ([poethepoet](https://poethepoet.natn.io/)
 | `revision -m "msg"` | Autogenerate a migration against the dev database |
 | `create-superuser` | `python -m app.cli create-superuser` inside the running `web` container |
 | `test` | Run the test suite (needs Docker; Postgres runs via testcontainers) |
+| `smoke` | Smoke-test the running stack through Traefik (health, docs, auth round trip) |
 | `lint` | `ruff check`, `ruff format --check`, `mypy` |
 | `format` | `ruff format` + `ruff check --fix` |
 | `check` | `lint` + `test`, which is what CI runs |
