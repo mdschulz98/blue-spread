@@ -62,6 +62,7 @@ Tasks are defined in `pyproject.toml` ([poethepoet](https://poethepoet.natn.io/)
 | `revision -m "msg"` | Autogenerate a migration against the dev database |
 | `create-superuser` | `python -m app.cli create-superuser` inside the running `web` container |
 | `test` | Run the test suite (needs Docker; Postgres runs via testcontainers) |
+| `smoke` | Smoke-test the running stack through Traefik (health, docs, auth round trip) |
 | `lint` | `ruff check`, `ruff format --check`, `mypy` |
 | `format` | `ruff format` + `ruff check --fix` |
 | `check` | `lint` + `test`, which is what CI runs |
@@ -265,7 +266,7 @@ documented 200/409 examples for `PATCH /notes/{id}`.
 
 | Area | Endpoints |
 | --- | --- |
-| Health | `GET /healthz` (liveness, no DB), `GET /readyz` (runs `SELECT 1`); also served at `/healthz`, `/readyz` |
+| Health | `GET /healthz` (liveness, no DB), `GET /readyz` (runs `SELECT 1`) |
 | Auth | `POST /auth/login` (OAuth2 form, `username` = email), `POST /auth/refresh`, `POST /auth/register` |
 | Users | `GET` / `PATCH /users/me`, `POST /users` and `GET /users/{id}` (superuser) |
 | Teams | `GET` / `POST /teams`, `GET` / `PATCH` / `DELETE /teams/{id}` |
