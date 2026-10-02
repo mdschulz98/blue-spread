@@ -1,0 +1,9 @@
+*
+!pyproject.toml
+!uv.lock
+!alembic.ini
+!app/
+!migrations/
+!docker/start.sh
+**/__pycache__
+**/*.pyc

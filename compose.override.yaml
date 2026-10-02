@@ -1,0 +1,51 @@
+# Development overrides, loaded automatically by `docker compose up`.
+#   API:       http://api.localhost        (docs at /docs)
+#   Dashboard: http://traefik.localhost
+services:
+  traefik:
+    environment:
+      TRAEFIK_API_DASHBOARD: "true"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.dashboard.rule: Host(`traefik.localhost`)
+      traefik.http.routers.dashboard.entrypoints: web
+      traefik.http.routers.dashboard.service: api@internal
+
+  db:
+    # Published on loopback only, for local DB tools and `uv run poe revision`.
+    # A port can't be published from an internal-only network, so db also joins "dbtools".
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    networks:
+      - backend
+      - dbtools
+
+  migrate:
+    volumes:
+      - ./migrations:/app/migrations:ro
+      - ./app:/app/app:ro
+
+  web:
+    command:
+      - uvicorn
+      - app.main:create_app
+      - --factory
+      - --host=0.0.0.0
+      - --port=8000
+      - --reload
+      - --reload-dir=app
+      - --proxy-headers
+      - --forwarded-allow-ips=*
+    environment:
+      ENVIRONMENT: dev
+      ALLOW_REGISTRATION: "true"
+      # File change events don't cross Docker Desktop bind mounts (Windows/macOS): poll instead.
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./app:/app/app:ro
+      - ./migrations:/app/migrations:ro
+    labels:
+      traefik.http.routers.api.rule: Host(`api.localhost`)
+
+networks:
+  dbtools:

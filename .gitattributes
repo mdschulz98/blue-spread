@@ -1,0 +1,9 @@
+# Normalize line endings in the repo; files that run inside Linux containers must stay LF
+# even when checked out on Windows.
+* text=auto eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
