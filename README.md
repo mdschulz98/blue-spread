@@ -9,6 +9,28 @@ PostgreSQL 17 · PyJWT + pwdlib/argon2 · merge3 · Traefik v3 · uv.
 
 ---
 
+## Talent Assessment / Development Considerations
+
+1. I started by researching well established packages and frameworks for this kind of application synthesizing the results with my own experience. I landed on Python/FastAPI as the main framework for the simplicity, speed, and familiarity. SQLAlchemy, Pydantic, and Alembic were natural conclusions for managing database schema and interaction from there. PostgreSQL came from design choice. PyJWT for authentication and merge3 for conflict resolution came from quick research after design choices. Traefik and Docker for deployment came from wide usage and familiarity again.
+2. After deciding on general technologies and frameworks, I fed the idea into a Claude prompt to create a detailed prompt for me to input into Claude Code to create the baseline for the repository. I also had it challenge my assumptions, design choices, and tech stack as applicable.
+3. From the baseline, I worked with more Claude Code prompts to remove duplicated endpoints, reduce CI load, and recommend extensions for VSCode based on the tech stack (and my preferred editor)
+
+### Design Choices
+
+#### Database Type
+SQL vs NoSQL was an important choice - essentially deciding on the notes format that would be available to the users. I decided on a markdown/text format to be used with SQL rather than a NoSQL/JSON approach that would support less organized document format notes. This was due to familiarity and time contraints. Markdown is also fairly powerful in formatting, so the tradeoff from document format (like Microsoft Word) is not that large. Moving forward, it would be achievable to support both styles, though this would introduce extra layers of database management.
+
+#### Concurrent Editing / Conflicts
+I chose to handle concurrent edits with a versioning system and merge conflict style responses if the same version is edited at the same time. This is the much simpler way than full concurrent editing support, but still doesn't outright reject users who might edit the same note at the same time.
+
+#### Changes Going Forward
+- Change the merge conflict editing to support concurrent editing with websockets and/or CRDTs
+- Add external identity provider support for login
+- Support file attachments for notes
+
+
+---
+
 ## Contents
 
 - [Quick start](#quick-start)
